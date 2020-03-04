@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/gocolly/colly"
+	"io"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -98,9 +100,9 @@ func main() {
 	c.Visit("https://www.inventables.com/projects")
 
 	c.Wait()
-	// for _,story := range stories {
-	// 	fmt.Printf("Story: %v\n", story)
-	// }
+	for _, story := range stories {
+		fmt.Printf("Story: %#v\n", story)
+	}
 }
 
 func downloadImage(path string, filename string, url string) {
