@@ -7,15 +7,26 @@ import (
 
 func main() {
 	t := "Hello World!"
-	s := []rune(t)
+	c := make(chan string)
 
-	for {
-		rand.Shuffle(len(s), func(i int, j int) {
-			s[i], s[j] = s[j], s[i]
-		})
-		fmt.Println(string(s))
-		if string(s) == t {
+	for i := 0; i < 6; i++ {
+		go gopher(t, c)
+	}
+
+	for s := range c {
+		fmt.Println(s)
+		if s == t {
 			break
 		}
+	}
+}
+
+func gopher(t string, c chan string) {
+	s := []rune(t)
+	for {
+		rand.Shuffle(len(s), func(i, j int) {
+			s[i], s[j] = s[j], s[i]
+		})
+		c <- string(s)
 	}
 }
