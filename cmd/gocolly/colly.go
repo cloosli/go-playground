@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"github.com/gocolly/colly"
 	"log"
-	"time"
-	"strings"
+	"net/url"
 	"os"
 	"path/filepath"
-	"net/url"
+	"strings"
+	"time"
 )
 
 type item struct {
-	StoryURL  string
-	Source    string
-	Comments  string
-	Title     string
+	StoryURL string
+	Source   string
+	Comments string
+	Title    string
 }
 
 func main() {
@@ -40,7 +40,7 @@ func main() {
 	c.OnRequest(func(r *colly.Request) {
 		fmt.Println("Visiting", r.URL)
 	})
-	
+
 	detailCollector.OnRequest(func(r *colly.Request) {
 		fmt.Println("Visiting", r.URL)
 	})
@@ -55,11 +55,11 @@ func main() {
 			u := r.Request.URL
 			q := u.Query()
 			path := q.Get("frompath")
-			if (path != "") {
+			if path != "" {
 				newPath := filepath.Join(outputDir, path)
 				os.MkdirAll(newPath, os.ModePerm)
 				filename := u.Path[strings.LastIndex(u.Path, "/"):]
-				r.Save(newPath+"/" + filename)
+				r.Save(newPath + "/" + filename)
 				return
 			}
 		}
@@ -90,10 +90,10 @@ func main() {
 		u.RawQuery = q.Encode()
 		c.Visit(u.String())
 	})
-	
+
 	c.OnScraped(func(r *colly.Response) {
 		fmt.Println("Finished", r.Request.URL)
-   })
+	})
 
 	c.Visit("https://www.inventables.com/projects")
 
@@ -105,11 +105,11 @@ func main() {
 
 func downloadImage(path string, filename string, url string) {
 	img, _ := os.Create(filepath.Join(path, filename))
-    defer img.Close()
+	defer img.Close()
 
-    resp, _ := http.Get(url)
-    defer resp.Body.Close()
+	resp, _ := http.Get(url)
+	defer resp.Body.Close()
 
-    b, _ := io.Copy(img, resp.Body)
-    fmt.Println("File size: ", b)
+	b, _ := io.Copy(img, resp.Body)
+	fmt.Println("File size: ", b)
 }
