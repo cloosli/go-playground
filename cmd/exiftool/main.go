@@ -1,86 +1,70 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
+	"errors"
+	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os/exec"
 
-	models "gitlab.com/christian.loosli/go-playground/cmd/exiftool/models"
+	"gitlab.com/christian.loosli/go-playground/cmd/exiftool/exiftool"
 )
 
+type CmdConfig struct {
+	RootDir   string
+	OutputDir string
+	Cmd       string
+	Offset    int
+	Args      []string
+}
+
+var config CmdConfig
+
 func main() {
-	rootDir := "/Users/cloosli/Pictures/GoPro/playground/"
+	config = *checkFlags()
+	files, err := exiftool.GetExifdata(config.RootDir)
+	checkError(err)
+	switch config.Cmd {
+	case "check":
+		Check(files)
+	case "diff":
+		Diffs(files)
+	case "date":
+		Date(files)
+	case "move":
+		Move()
+	}
+}
 
-	files, err := getExifdata(rootDir)
+func checkFlags() *CmdConfig {
+	config := CmdConfig{}
+	var fatalErr error
+	defer func() {
+		if fatalErr != nil {
+			flag.PrintDefaults()
+			log.Fatalln(fatalErr)
+		}
+	}()
+
+	flag.StringVar(&config.RootDir, "i", "./input", "read directory")
+	flag.StringVar(&config.OutputDir, "d", "./output", "path to new pictures directory")
+	flag.IntVar(&config.Offset, "offset", 0, "offset")
+
+	flag.Parse()
+	args := flag.Args()
+	if len(args) < 1 {
+		fatalErr = errors.New("invalid usage; must specify command")
+		return nil
+	}
+	config.Cmd = args[0]
+	config.Args = args[1:]
+	fmt.Printf("%+v\n", config)
+	return &config
+}
+
+func checkError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for i, f := range files {
-		if i > 1 && i%10 == 0 {
-			fmt.Printf(" - - - - - - \n")
-		}
-		fmt.Printf("%d %v \n", i, f.String())
-		if !f.GPSDateTime.IsZero() {
-			f.SetZoneOffset(f.GPSDateTime, -7)
-			fmt.Printf("  %v \n", f.String())
-		}
-	}
-}
-
-func getExifdata(rootDir string) ([]models.Exifdata, error) {
-	checkDir(rootDir)
-	s, err := readExiftoolAsJson(rootDir)
-	if err != nil {
-		return nil, err
-	}
-	files, err := readJson(s)
-	if err != nil {
-		return nil, err
-	}
-	return files, nil
-}
-
-func readExiftoolAsJson(filepath string) ([]byte, error) {
-	cmd := exec.Command("exiftool", "-r", "-json", filepath)
-	var output bytes.Buffer
-	cmd.Stdout = &output
-	if err := cmd.Start(); err != nil {
-		log.Fatalln("Error: ", cmd.String(), err)
-	}
-	cmd.Wait()
-	log.Println("OK ", cmd.String())
-	return output.Bytes(), nil
-}
-
-func checkDir(filepath string) {
-	if _, err := ioutil.ReadDir(filepath); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func readJson(jsonData []byte) ([]models.Exifdata, error) {
-	var res []map[string]interface{}
-	if err := json.Unmarshal(jsonData, &res); err != nil {
-		return nil, err
-	}
-	list := []models.Exifdata{}
-	for _, i := range res {
-		var j models.Exifdata
-		j.Parse(i)
-		list = append(list, j)
-	}
-	return list, nil
-}
-
-func readFile(filepath string) ([]models.Exifdata, error) {
-	data, err := ioutil.ReadFile(filepath)
-	if err != nil {
-		return nil, err
-	}
-	return readJson(data)
 }
 
 // func walk() {

@@ -10,14 +10,14 @@ import (
 
 type Exifdata struct {
 	SourceFile          string
-	DateTimeOriginal    time.Time
-	CreateDate          time.Time
+	DateTimeOriginal    *time.Time
+	CreateDate          *time.Time
 	FileAccessDate      string
 	FileInodeChangeDate string
-	FileModifyDate      time.Time
+	FileModifyDate      *time.Time
 	MediaCreateDate     string
 	MediaModifyDate     string
-	ModifyDate          time.Time
+	ModifyDate          *time.Time
 	TrackCreateDate     string
 	TrackModifyDate     string
 	// AudioBitsPerSample   int      `json:"AudioBitsPerSample,omitempty"`
@@ -162,22 +162,20 @@ func (t *Exifdata) Parse(data map[string]interface{}) {
 
 // 2020:02:02 13:53:19
 func parseDateZ(key string, data map[string]interface{}) *time.Time {
-	t := parseDateByLayout(key, data, "2006:01:02 15:04:05Z")
-	return &t
+	return parseDateByLayout(key, data, "2006:01:02 15:04:05Z")
 }
 
-func parseDate(key string, data map[string]interface{}) time.Time {
+func parseDate(key string, data map[string]interface{}) *time.Time {
 	return parseDateByLayout(key, data, "2006:01:02 15:04:05")
 }
 
-func parseDateByLayout(key string, data map[string]interface{}, layout string) time.Time {
+func parseDateByLayout(key string, data map[string]interface{}, layout string) *time.Time {
 	if value, ok := getStringFromMap(key, data); ok {
 		t, err := time.Parse(layout, value)
-		// fmt.Println("GPS: ", value, t)
 		checkError(err, value)
-		return t
+		return &t
 	}
-	return time.Time{}
+	return &time.Time{}
 }
 
 func getStringFromMap(key string, data map[string]interface{}) (string, bool) {
@@ -198,19 +196,19 @@ func checkError(err error, message string) {
 // Decode will decode into JSONData
 func (t *Exifdata) String() string {
 	var info string
-	// info += fmt.Sprintf("%v", strings.Split(t.SourceFile, "/")[4:])
-	info += fmt.Sprintf("FileName: %v", t.FileName)
-	info += fmt.Sprintf("\tDateTimeOriginal: %v", t.DateTimeOriginal.Format(time.RFC3339))
-	// info += fmt.Sprintf("\tCreateDate: %v", t.CreateDate)
-	info += fmt.Sprintf("\tGPSDateTime: %v", t.GPSDateTime.Format(time.RFC3339))
-	// info += fmt.Sprintf("\tFileModifyDate: %v", t.FileModifyDate.Format(time.RFC3339))
+	info += fmt.Sprintf("====== %v", t.FileName)
+	info += fmt.Sprintf("\nDateTimeOriginal:\t %v", t.DateTimeOriginal.Format("2006-01-02T15:04:05 MST"))
+	info += fmt.Sprintf("\nCreateDate:\t\t %v", t.CreateDate.Format("2006-01-02T15:04:05 MST"))
+	if !t.GPSDateTime.IsZero() {
+		info += fmt.Sprintf("\nGPSDateTime:\t\t %v", t.GPSDateTime.Format("2006-01-02T15:04:05 MST"))
+	}
 	return info
 }
 
 // Set
 func (t *Exifdata) SetZoneOffset(datum *time.Time, offset int) {
 	hours := time.Duration(int(time.Hour) * offset).Seconds()
-	*datum = t.GPSDateTime.In(time.FixedZone("", int(hours)))
+	*datum = datum.In(time.FixedZone("", int(hours)))
 }
 
 // Decode will decode into JSONData
